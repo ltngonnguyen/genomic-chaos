@@ -19,7 +19,7 @@ import terrain
 
 class TestGA(unittest.TestCase):
     def testBasicGA(self):
-        pop = population.Population(pop_size=120, gene_count=5)
+        pop = population.Population(pop_size=120, gene_count=3)
         sim = simulation.ThreadedSim(pool_size=12)
         # sim = simulation.Simulation()
 
@@ -49,7 +49,7 @@ class TestGA(unittest.TestCase):
                 cr.update_position((-5, 5, 1.5))
 
             sim.eval_population(pop, 2400)
-            fits = [cr.get_distance_travelled() for cr in pop.creatures]
+            fits = [cr.get_fitness() for cr in pop.creatures]
             links = [len(cr.get_expanded_links()) for cr in pop.creatures]
             print(
                 iteration,
@@ -80,7 +80,7 @@ class TestGA(unittest.TestCase):
             # elitism
             max_fit = np.max(fits)
             for cr in pop.creatures:
-                if cr.get_distance_travelled() == max_fit:
+                if cr.get_fitness() == max_fit:
                     new_cr = creature.Creature(1)
                     new_cr.update_dna(cr.dna)
                     new_creatures[0] = new_cr

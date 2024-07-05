@@ -45,6 +45,7 @@ class Creature:
         self.start_position = None
         self.current_position = None
         self.distance_traveled = 0
+        self.max_height = float("-inf")
         self.MIN_DISTANCE_THRESHOLD = 0.5
         self.SHORT_DISTANCE_PENALTY = 0.5
 
@@ -97,20 +98,30 @@ class Creature:
         if self.start_position is None:
             self.start_position = pos
         self.current_position = pos
+        self.max_height = max(self.max_height, pos[2])
 
     def finalize_distance(self):
+        # This method will now calculate a score instead of just distance
         if self.start_position is None or self.current_position is None:
             return 0
-        p1 = np.asarray(self.start_position)
-        p2 = np.asarray(self.current_position)
-        self.distance_traveled = np.linalg.norm(p2 - p1)
-        if self.distance_traveled < self.MIN_DISTANCE_THRESHOLD:
-            self.distance_traveled = (
-                self.distance_traveled * self.SHORT_DISTANCE_PENALTY
-            )
 
-    def get_distance_travelled(self):
-        return self.distance_traveled
+        # Calculate distance moved towards the mountain
+        mountain_center = np.array([0, 0, 0])
+        start_to_mountain = mountain_center[:2] - np.array(self.start_position[:2])
+        end_to_mountain = mountain_center[:2] - np.array(self.current_position[:2])
+
+        distance_towards_mountain = np.linalg.norm(start_to_mountain) - np.linalg.norm(
+            end_to_mountain
+        )
+
+        # Calculate height gained
+        height_gained = self.max_height - self.start_position[2]
+
+        # Combine distance towards mountain and height gained for final score
+        self.score = 1.5 * distance_towards_mountain + 2 * height_gained
+
+    def get_fitness(self):
+        return self.score
 
     def update_dna(self, dna):
         self.dna = dna
