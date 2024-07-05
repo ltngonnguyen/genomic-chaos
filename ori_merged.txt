@@ -549,178 +549,104 @@ class URDFLink:
 
 
 [motor_test.py]
-# motor_test.py
-import time
-
-import numpy as np
-import pybullet as p
-
-import creature
 import genome
-import terrain  # Import the terrain module
-
-
-def main():
-    p.connect(p.GUI)
-    p.setPhysicsEngineParameter(enableFileCaching=0)
-    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    p.setGravity(0, 0, -10)
-
-    arena_size = 20
-    terrain.make_arena(arena_size=arena_size)
-
-    mountain_position = (0, 0, -1)
-    mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-    p.setAdditionalSearchPath("shapes/")
-    mountain = p.loadURDF(
-        "gaussian_pyramid.urdf", mountain_position, mountain_orientation, useFixedBase=1
-    )
-
-    # generate a random creature
-    cr = creature.Creature(gene_count=3)
-    # save it to XML
-    with open("test.urdf", "w") as f:
-        f.write(cr.to_xml())
-    # load it into the sim
-    rob1 = p.loadURDF("test.urdf", (0, 0, 10))
-
-    start_pos, orn = p.getBasePositionAndOrientation(rob1)
-
-    elapsed_time = 0
-    wait_time = 1.0 / 240  # seconds
-    total_time = 5  # seconds
-    step = 0
-    dist_moved = 0
-    while True:
-        p.stepSimulation()
-        step += 1
-        if step % 120 == 0:
-            motors = cr.get_motors()
-            assert len(motors) == p.getNumJoints(rob1), "Something went wrong"
-            for jid in range(p.getNumJoints(rob1)):
-                mode = p.VELOCITY_CONTROL
-                vel = motors[jid].get_output()
-                p.setJointMotorControl2(rob1, jid, controlMode=mode, targetVelocity=vel)
-            new_pos, orn = p.getBasePositionAndOrientation(rob1)
-            dist_moved = np.linalg.norm(np.asarray(start_pos) - np.asarray(new_pos))
-        print(dist_moved)
-        time.sleep(wait_time)
-        elapsed_time += wait_time
-        if elapsed_time > total_time:
-            break
-
-    print("TOTAL DISTANCE MOVED:", dist_moved)
-
-
-if __name__ == "__main__":
-    main()
-
-[new-cw-envt.py]
-# cw-envt.py
-import random
-import time
-
-import numpy as np
-import pybullet as p
-import pybullet_data
-
 import creature
-import terrain
+import pybullet as p
+import time 
+import random
+import numpy as np
 
+## ... usual starter code to create a sim and floor
 p.connect(p.GUI)
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
+p.setPhysicsEngineParameter(enableFileCaching=0)
+p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+plane_shape = p.createCollisionShape(p.GEOM_PLANE)
+floor = p.createMultiBody(plane_shape, plane_shape)
 p.setGravity(0, 0, -10)
-
-arena_size = 20
-
-terrain.make_arena(arena_size=arena_size)
-
-# make_rocks(arena_size=arena_size)
-
-mountain_position = (0, 0, -1)  # Adjust as needed
-mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-p.setAdditionalSearchPath("shapes/")
-# mountain = p.loadURDF("mountain.urdf", mountain_position, mountain_orientation, useFixedBase=1)
-# mountain = p.loadURDF("mountain_with_cubes.urdf", mountain_position, mountain_orientation, useFixedBase=1)
-
-mountain = p.loadURDF(
-    "gaussian_pyramid.urdf", mountain_position, mountain_orientation, useFixedBase=1
-)
+# commenting out for mac compatibility
+#p.setRealTimeSimulation(1)
 
 # generate a random creature
 cr = creature.Creature(gene_count=3)
 # save it to XML
-with open("test.urdf", "w") as f:
+with open('test.urdf', 'w') as f:
     f.write(cr.to_xml())
 # load it into the sim
-rob1 = p.loadURDF("test.urdf", (0, 0, 10))
+rob1 = p.loadURDF('test.urdf')
+start_pos, orn = p.getBasePositionAndOrientation(rob1)
 
-p.setRealTimeSimulation(1)
-
+# iterate 
+elapsed_time = 0
+wait_time = 1.0 / 240 # seconds
+total_time = 5 # seconds
+step = 0
+dist_moved = 0
 while True:
-    time.sleep(1.0 / 240.0)
-    if (
-        p.getBasePositionAndOrientation(rob1)[0][2]
-        < p.getBasePositionAndOrientation(mountain)[0][2]
-    ):
-        print("Creature fell from mountain")
+    p.stepSimulation()
+    step += 1
+    if step % 120 == 0:
+        motors = cr.get_motors()
+        assert len(motors) == p.getNumJoints(rob1), "Something went wrong"
+        for jid in range(p.getNumJoints(rob1)):
+            mode = p.VELOCITY_CONTROL
+            vel = motors[jid].get_output()
+            p.setJointMotorControl2(rob1, 
+                        jid,  
+                        controlMode=mode, 
+                        targetVelocity=vel)
+        new_pos, orn = p.getBasePositionAndOrientation(rob1)
+        #print(new_pos)
+        dist_moved = np.linalg.norm(np.asarray(start_pos) - np.asarray(new_pos))
+    print(dist_moved)
+    time.sleep(wait_time)
+    elapsed_time += wait_time
+    if elapsed_time > total_time:
         break
 
+print("TOTAL DISTANCE MOVED:", dist_moved)
+
+
 [offline_from_csv.py]
-# offline_from_csv.py
-import os
-import random
-import sys
-import time
-
-import numpy as np
-import pybullet as p
-
-import creature
+import os 
 import genome
-import terrain  # Import the terrain module
+import sys
+import creature
+import pybullet as p
+import time 
+import random
+import numpy as np
 
-
+## ... usual starter code to create a sim and floor
 def main(csv_file):
-    assert os.path.exists(csv_file), (
-        "Tried to load " + csv_file + " but it does not exist"
-    )
+    assert os.path.exists(csv_file), "Tried to load " + csv_file + " but it does not exists"
 
     p.connect(p.DIRECT)
     p.setPhysicsEngineParameter(enableFileCaching=0)
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    plane_shape = p.createCollisionShape(p.GEOM_PLANE)
+    floor = p.createMultiBody(plane_shape, plane_shape)
     p.setGravity(0, 0, -10)
+#   p.setRealTimeSimulation(1)
 
-    arena_size = 20
-    terrain.make_arena(arena_size=arena_size)
-
-    mountain_position = (0, 0, -1)
-    mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-    p.setAdditionalSearchPath("shapes/")
-    mountain = p.loadURDF(
-        "gaussian_pyramid.urdf", mountain_position, mountain_orientation, useFixedBase=1
-    )
 
     # generate a random creature
     cr = creature.Creature(gene_count=1)
     dna = genome.Genome.from_csv(csv_file)
     cr.update_dna(dna)
     # save it to XML
-    with open("test.urdf", "w") as f:
+    with open('test.urdf', 'w') as f:
         f.write(cr.to_xml())
     # load it into the sim
-    quadrant_positions = [(5, 5, 1.5), (-5, 5, 1.5), (5, -5, 1.5), (-5, -5, 1.5)]
-    for pos in quadrant_positions:
-        rob1 = p.loadURDF("test.urdf", pos, (0, 0, 0, 1))
-        start_pos, orn = p.getBasePositionAndOrientation(rob1)
-        break  # only use the first position for simplicity
+    rob1 = p.loadURDF('test.urdf')
+    # air drop it
+    p.resetBasePositionAndOrientation(rob1, [0, 0, 2.5], [0, 0, 0, 1])
 
-    # iterate
+    start_pos, orn = p.getBasePositionAndOrientation(rob1)
+
+    # iterate 
     elapsed_time = 0
-    wait_time = 1.0 / 240  # seconds
-    total_time = 30  # seconds
+    wait_time = 1.0/240 # seconds
+    total_time = 30 # seconds
     step = 0
     while True:
         p.stepSimulation()
@@ -731,10 +657,15 @@ def main(csv_file):
             for jid in range(p.getNumJoints(rob1)):
                 mode = p.VELOCITY_CONTROL
                 vel = motors[jid].get_output()
-                p.setJointMotorControl2(rob1, jid, controlMode=mode, targetVelocity=vel)
+                p.setJointMotorControl2(rob1, 
+                            jid,  
+                            controlMode=mode, 
+                            targetVelocity=vel)
             new_pos, orn = p.getBasePositionAndOrientation(rob1)
+            #print(new_pos)
             dist_moved = np.linalg.norm(np.asarray(start_pos) - np.asarray(new_pos))
             print(dist_moved)
+        #time.sleep(wait_time)
         elapsed_time += wait_time
         if elapsed_time > total_time:
             break
@@ -742,9 +673,11 @@ def main(csv_file):
     print("TOTAL DISTANCE MOVED:", dist_moved)
 
 
+
 if __name__ == "__main__":
-    assert len(sys.argv) == 2, "Usage: python offline_from_csv.py csv_filename"
+    assert len(sys.argv) == 2, "Usage: python playback_test.py csv_filename"
     main(sys.argv[1])
+
 
 [population.py]
 import creature 
@@ -1120,58 +1053,45 @@ generate_gaussian_pyramid4("./shapes/gaussian_pyramid.obj")
 # make_rocky_moutain('./shapes/mountain_with_cubes.obj')
 
 [realtime_from_csv.py]
-# realtime_from_csv.py
-import os
-import random
-import sys
-import time
-
-import numpy as np
-import pybullet as p
-
-import creature
+import os 
 import genome
-import terrain  # Import the terrain module
+import sys
+import creature
+import pybullet as p
+import time 
+import random
+import numpy as np
 
-
+## ... usual starter code to create a sim and floor
 def main(csv_file):
-    assert os.path.exists(csv_file), (
-        "Tried to load " + csv_file + " but it does not exist"
-    )
+    assert os.path.exists(csv_file), "Tried to load " + csv_file + " but it does not exists"
 
     p.connect(p.GUI)
     p.setPhysicsEngineParameter(enableFileCaching=0)
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+    plane_shape = p.createCollisionShape(p.GEOM_PLANE)
+    floor = p.createMultiBody(plane_shape, plane_shape)
     p.setGravity(0, 0, -10)
+#   p.setRealTimeSimulation(1)
 
-    arena_size = 20
-    terrain.make_arena(arena_size=arena_size)
-
-    mountain_position = (0, 0, -1)
-    mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-    p.setAdditionalSearchPath("shapes/")
-    mountain = p.loadURDF(
-        "gaussian_pyramid.urdf", mountain_position, mountain_orientation, useFixedBase=1
-    )
 
     # generate a random creature
     cr = creature.Creature(gene_count=1)
     dna = genome.Genome.from_csv(csv_file)
     cr.update_dna(dna)
     # save it to XML
-    with open("test.urdf", "w") as f:
+    with open('test.urdf', 'w') as f:
         f.write(cr.to_xml())
     # load it into the sim
-    quadrant_positions = [(5, 5, 1.5), (-5, 5, 1.5), (5, -5, 1.5), (-5, -5, 1.5)]
-    for pos in quadrant_positions:
-        rob1 = p.loadURDF("test.urdf", pos, (0, 0, 0, 1))
-        start_pos, orn = p.getBasePositionAndOrientation(rob1)
-        break  # only use the first position for simplicity
+    rob1 = p.loadURDF('test.urdf')
+    # air drop it
+    p.resetBasePositionAndOrientation(rob1, [0, 0, 2.5], [0, 0, 0, 1])
+    start_pos, orn = p.getBasePositionAndOrientation(rob1)
 
-    # iterate
+    # iterate 
     elapsed_time = 0
-    wait_time = 1.0 / 240  # seconds
-    total_time = 30  # seconds
+    wait_time = 1.0/240 # seconds
+    total_time = 30 # seconds
     step = 0
     while True:
         p.stepSimulation()
@@ -1182,8 +1102,12 @@ def main(csv_file):
             for jid in range(p.getNumJoints(rob1)):
                 mode = p.VELOCITY_CONTROL
                 vel = motors[jid].get_output()
-                p.setJointMotorControl2(rob1, jid, controlMode=mode, targetVelocity=vel)
+                p.setJointMotorControl2(rob1, 
+                            jid,  
+                            controlMode=mode, 
+                            targetVelocity=vel)
             new_pos, orn = p.getBasePositionAndOrientation(rob1)
+            #print(new_pos)
             dist_moved = np.linalg.norm(np.asarray(start_pos) - np.asarray(new_pos))
             print(dist_moved)
         time.sleep(wait_time)
@@ -1194,19 +1118,17 @@ def main(csv_file):
     print("TOTAL DISTANCE MOVED:", dist_moved)
 
 
+
 if __name__ == "__main__":
-    assert len(sys.argv) == 2, "Usage: python realtime_from_csv.py csv_filename"
+    assert len(sys.argv) == 2, "Usage: python playback_test.py csv_filename"
     main(sys.argv[1])
 
+
 [simulation.py]
+import pybullet as p
 from multiprocessing import Pool
 
-import pybullet as p
-
-import terrain
-
-
-class Simulation:
+class Simulation: 
     def __init__(self, sim_id=0):
         self.physicsClientId = p.connect(p.DIRECT)
         self.sim_id = sim_id
@@ -1217,23 +1139,18 @@ class Simulation:
         p.setPhysicsEngineParameter(enableFileCaching=0, physicsClientId=pid)
 
         p.setGravity(0, 0, -10, physicsClientId=pid)
+        plane_shape = p.createCollisionShape(p.GEOM_PLANE, physicsClientId=pid)
+        floor = p.createMultiBody(plane_shape, plane_shape, physicsClientId=pid)
 
-        # Create terrain
-        arena_size = 20
-        terrain.make_arena(arena_size=arena_size)
-        terrain.make_mountain(arena_size=arena_size)
-
-        xml_file = "temp" + str(self.sim_id) + ".urdf"
+        xml_file = 'temp' + str(self.sim_id) + '.urdf'
         xml_str = cr.to_xml()
-        with open(xml_file, "w") as f:
+        with open(xml_file, 'w') as f:
             f.write(xml_str)
-
+        
         cid = p.loadURDF(xml_file, physicsClientId=pid)
 
-        # Set starting position
-        p.resetBasePositionAndOrientation(
-            cid, [-5, 5, 1.5], [0, 0, 0, 1], physicsClientId=pid
-        )
+        p.resetBasePositionAndOrientation(cid, [0, 0, 2.5], [0, 0, 0, 1], physicsClientId=pid)
+
 
         for step in range(iterations):
             p.stepSimulation(physicsClientId=pid)
@@ -1242,30 +1159,33 @@ class Simulation:
 
             pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
             cr.update_position(pos)
-
+            #print(pos[2])
+            #print(cr.get_distance_travelled())
+        
+    
     def update_motors(self, cid, cr):
         """
         cid is the id in the physics engine
         cr is a creature object
         """
-        for jid in range(p.getNumJoints(cid, physicsClientId=self.physicsClientId)):
+        for jid in range(p.getNumJoints(cid,
+                                        physicsClientId=self.physicsClientId)):
             m = cr.get_motors()[jid]
 
-            p.setJointMotorControl2(
-                cid,
-                jid,
-                controlMode=p.VELOCITY_CONTROL,
-                targetVelocity=m.get_output(),
-                force=5,
-                physicsClientId=self.physicsClientId,
-            )
+            p.setJointMotorControl2(cid, jid, 
+                    controlMode=p.VELOCITY_CONTROL, 
+                    targetVelocity=m.get_output(), 
+                    force = 5, 
+                    physicsClientId=self.physicsClientId)
+        
 
+    # You can add this to the Simulation class:
     def eval_population(self, pop, iterations):
         for cr in pop.creatures:
-            self.run_creature(cr, iterations)
+            self.run_creature(cr, 2400) 
 
 
-class ThreadedSim:
+class ThreadedSim():
     def __init__(self, pool_size):
         self.sims = [Simulation(i) for i in range(pool_size)]
 
@@ -1273,24 +1193,26 @@ class ThreadedSim:
     def static_run_creature(sim, cr, iterations):
         sim.run_creature(cr, iterations)
         return cr
-
+    
     def eval_population(self, pop, iterations):
         """
         pop is a Population object
         iterations is frames in pybullet to run for at 240fps
         """
-        pool_args = []
+        pool_args = [] 
         start_ind = 0
         pool_size = len(self.sims)
         while start_ind < len(pop.creatures):
             this_pool_args = []
             for i in range(start_ind, start_ind + pool_size):
-                if i == len(pop.creatures):  # the end
+                if i == len(pop.creatures):# the end
                     break
                 # work out the sim ind
                 sim_ind = i % len(self.sims)
-                this_pool_args.append(
-                    [self.sims[sim_ind], pop.creatures[i], iterations]
+                this_pool_args.append([
+                            self.sims[sim_ind], 
+                            pop.creatures[i], 
+                            iterations]   
                 )
             pool_args.append(this_pool_args)
             start_ind = start_ind + pool_size
@@ -1300,7 +1222,7 @@ class ThreadedSim:
             with Pool(pool_size) as p:
                 # it works on a copy of the creatures, so receive them
                 creatures = p.starmap(ThreadedSim.static_run_creature, pool_argset)
-                # and now put those creatures back into the main
+                # and now put those creatures back into the main 
                 # self.creatures array
                 new_creatures.extend(creatures)
         pop.creatures = new_creatures
@@ -1316,129 +1238,6 @@ plane_shape = p.createCollisionShape(p.GEOM_PLANE)
 floor = p.createMultiBody(plane_shape, plane_shape)
 p.setGravity(0, 0, -10)
 
-
-[terrain.py]
-# terrain.py
-import math
-import random
-
-import pybullet as p
-
-
-def make_mountain(num_rocks=100, max_size=0.25, arena_size=10, mountain_height=5):
-    def gaussian(x, y, sigma=arena_size / 4):
-        """Return the height of the mountain at position (x, y) using a Gaussian function."""
-        return mountain_height * math.exp(-((x**2 + y**2) / (2 * sigma**2)))
-
-    for _ in range(num_rocks):
-        x = random.uniform(-1 * arena_size / 2, arena_size / 2)
-        y = random.uniform(-1 * arena_size / 2, arena_size / 2)
-        z = gaussian(x, y)  # Height determined by the Gaussian function
-
-        size_factor = 1 - (z / mountain_height)
-        size = random.uniform(0.1, max_size) * size_factor
-
-        orientation = p.getQuaternionFromEuler(
-            [random.uniform(0, 3.14), random.uniform(0, 3.14), random.uniform(0, 3.14)]
-        )
-        rock_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=[size, size, size])
-        rock_visual = p.createVisualShape(
-            p.GEOM_BOX, halfExtents=[size, size, size], rgbaColor=[0.5, 0.5, 0.5, 1]
-        )
-        rock_body = p.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=rock_shape,
-            baseVisualShapeIndex=rock_visual,
-            basePosition=[x, y, z - size / 2],
-            baseOrientation=orientation,
-        )
-
-
-def make_rocks(num_rocks=100, max_size=0.25, arena_size=10):
-    for _ in range(num_rocks):
-        x = random.uniform(-1 * arena_size / 2, arena_size / 2)
-        y = random.uniform(-1 * arena_size / 2, arena_size / 2)
-        z = 0.5
-        size = random.uniform(0.1, max_size)
-        orientation = p.getQuaternionFromEuler(
-            [random.uniform(0, 3.14), random.uniform(0, 3.14), random.uniform(0, 3.14)]
-        )
-        rock_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=[size, size, size])
-        rock_visual = p.createVisualShape(
-            p.GEOM_BOX, halfExtents=[size, size, size], rgbaColor=[0.5, 0.5, 0.5, 1]
-        )
-        rock_body = p.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=rock_shape,
-            baseVisualShapeIndex=rock_visual,
-            basePosition=[x, y, z - size / 2],
-            baseOrientation=orientation,
-        )
-
-
-def make_arena(arena_size=10, wall_height=1):
-    wall_thickness = 0.5
-    floor_collision_shape = p.createCollisionShape(
-        shapeType=p.GEOM_BOX,
-        halfExtents=[arena_size / 2, arena_size / 2, wall_thickness],
-    )
-    floor_visual_shape = p.createVisualShape(
-        shapeType=p.GEOM_BOX,
-        halfExtents=[arena_size / 2, arena_size / 2, wall_thickness],
-        rgbaColor=[1, 1, 0, 1],
-    )
-    floor_body = p.createMultiBody(
-        baseMass=0,
-        baseCollisionShapeIndex=floor_collision_shape,
-        baseVisualShapeIndex=floor_visual_shape,
-        basePosition=[0, 0, -wall_thickness],
-    )
-
-    wall_collision_shape = p.createCollisionShape(
-        shapeType=p.GEOM_BOX,
-        halfExtents=[arena_size / 2, wall_thickness / 2, wall_height / 2],
-    )
-    wall_visual_shape = p.createVisualShape(
-        shapeType=p.GEOM_BOX,
-        halfExtents=[arena_size / 2, wall_thickness / 2, wall_height / 2],
-        rgbaColor=[0.7, 0.7, 0.7, 1],
-    )  # Gray walls
-
-    p.createMultiBody(
-        baseMass=0,
-        baseCollisionShapeIndex=wall_collision_shape,
-        baseVisualShapeIndex=wall_visual_shape,
-        basePosition=[0, arena_size / 2, wall_height / 2],
-    )
-    p.createMultiBody(
-        baseMass=0,
-        baseCollisionShapeIndex=wall_collision_shape,
-        baseVisualShapeIndex=wall_visual_shape,
-        basePosition=[0, -arena_size / 2, wall_height / 2],
-    )
-
-    wall_collision_shape = p.createCollisionShape(
-        shapeType=p.GEOM_BOX,
-        halfExtents=[wall_thickness / 2, arena_size / 2, wall_height / 2],
-    )
-    wall_visual_shape = p.createVisualShape(
-        shapeType=p.GEOM_BOX,
-        halfExtents=[wall_thickness / 2, arena_size / 2, wall_height / 2],
-        rgbaColor=[0.7, 0.7, 0.7, 1],
-    )  # Gray walls
-
-    p.createMultiBody(
-        baseMass=0,
-        baseCollisionShapeIndex=wall_collision_shape,
-        baseVisualShapeIndex=wall_visual_shape,
-        basePosition=[arena_size / 2, 0, wall_height / 2],
-    )
-    p.createMultiBody(
-        baseMass=0,
-        baseCollisionShapeIndex=wall_collision_shape,
-        baseVisualShapeIndex=wall_visual_shape,
-        basePosition=[-arena_size / 2, 0, wall_height / 2],
-    )
 
 [test_creature.py]
 import unittest
@@ -1566,70 +1365,34 @@ class TestGA(unittest.TestCase):
 unittest.main()
 
 [test_ga.py]
-# test_ga.py
-# If you on a Windows machine with any Python version
+# If you on a Windows machine with any Python version 
 # or an M1 mac with any Python version
 # or an Intel Mac with Python > 3.7
 # this multi-threaded version does not work
 # please use test_ga_single_thread.py on those setups
 
 import unittest
-
-import numpy as np
-import pybullet as p
-
-import creature
-import genome
 import population
-import simulation
-import terrain
-
+import simulation 
+import genome 
+import creature 
+import numpy as np
 
 class TestGA(unittest.TestCase):
     def testBasicGA(self):
-        pop = population.Population(pop_size=120, gene_count=5)
-        sim = simulation.ThreadedSim(pool_size=12)
-        # sim = simulation.Simulation()
-
-        # PyBullet setup
-        p.connect(p.DIRECT)
-        p.setPhysicsEngineParameter(enableFileCaching=0)
-        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-        p.setGravity(0, 0, -10)
-
-        # Create terrain
-        arena_size = 20
-        terrain.make_arena(arena_size=arena_size)
-
-        mountain_position = (0, 0, -1)
-        mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
-        p.setAdditionalSearchPath("shapes/")
-        mountain = p.loadURDF(
-            "gaussian_pyramid.urdf",
-            mountain_position,
-            mountain_orientation,
-            useFixedBase=1,
-        )
+        pop = population.Population(pop_size=10, 
+                                    gene_count=3)
+        sim = simulation.ThreadedSim(pool_size=1)
+        #sim = simulation.Simulation()
 
         for iteration in range(1000):
-            # Set creature starting position
-            for cr in pop.creatures:
-                cr.update_position((-5, 5, 1.5))
-
             sim.eval_population(pop, 2400)
-            fits = [cr.get_distance_travelled() for cr in pop.creatures]
-            links = [len(cr.get_expanded_links()) for cr in pop.creatures]
-            print(
-                iteration,
-                "fittest:",
-                np.round(np.max(fits), 3),
-                "mean:",
-                np.round(np.mean(fits), 3),
-                "mean links",
-                np.round(np.mean(links)),
-                "max links",
-                np.round(np.max(links)),
-            )
+            fits = [cr.get_distance_travelled() 
+                    for cr in pop.creatures]
+            links = [len(cr.get_expanded_links()) 
+                    for cr in pop.creatures]
+            print(iteration, "fittest:", np.round(np.max(fits), 3), 
+                  "mean:", np.round(np.mean(fits), 3), "mean links", np.round(np.mean(links)), "max links", np.round(np.max(links)))       
             fit_map = population.Population.get_fitness_map(fits)
             new_creatures = []
             for i in range(len(pop.creatures)):
@@ -1652,14 +1415,13 @@ class TestGA(unittest.TestCase):
                     new_cr = creature.Creature(1)
                     new_cr.update_dna(cr.dna)
                     new_creatures[0] = new_cr
-                    filename = "elite_" + str(iteration) + ".csv"
+                    filename = "elite_"+str(iteration)+".csv"
                     genome.Genome.to_csv(cr.dna, filename)
                     break
-
+            
             pop.creatures = new_creatures
-
+                            
         self.assertNotEqual(fits[0], 0)
-
 
 unittest.main()
 

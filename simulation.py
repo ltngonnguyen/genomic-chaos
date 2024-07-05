@@ -42,6 +42,8 @@ class Simulation:
             pos, orn = p.getBasePositionAndOrientation(cid, physicsClientId=pid)
             cr.update_position(pos)
 
+        cr.finalize_distance()
+
     def update_motors(self, cid, cr):
         """
         cid is the id in the physics engine

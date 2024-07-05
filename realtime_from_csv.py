@@ -40,11 +40,8 @@ def main(csv_file):
     with open("test.urdf", "w") as f:
         f.write(cr.to_xml())
     # load it into the sim
-    quadrant_positions = [(5, 5, 1.5), (-5, 5, 1.5), (5, -5, 1.5), (-5, -5, 1.5)]
-    for pos in quadrant_positions:
-        rob1 = p.loadURDF("test.urdf", pos, (0, 0, 0, 1))
-        start_pos, orn = p.getBasePositionAndOrientation(rob1)
-        break  # only use the first position for simplicity
+    rob1 = p.loadURDF("test.urdf", (5, -5, 1.5), (0, 0, 0, 1))
+    start_pos, orn = p.getBasePositionAndOrientation(rob1)
 
     # iterate
     elapsed_time = 0
