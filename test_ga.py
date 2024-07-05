@@ -1,31 +1,67 @@
-# If you on a Windows machine with any Python version 
+# test_ga.py
+# If you on a Windows machine with any Python version
 # or an M1 mac with any Python version
 # or an Intel Mac with Python > 3.7
 # this multi-threaded version does not work
 # please use test_ga_single_thread.py on those setups
 
 import unittest
-import population
-import simulation 
-import genome 
-import creature 
+
 import numpy as np
+import pybullet as p
+
+import creature
+import genome
+import population
+import simulation
+import terrain
+
 
 class TestGA(unittest.TestCase):
     def testBasicGA(self):
-        pop = population.Population(pop_size=10, 
-                                    gene_count=3)
-        sim = simulation.ThreadedSim(pool_size=1)
-        #sim = simulation.Simulation()
+        pop = population.Population(pop_size=120, gene_count=5)
+        sim = simulation.ThreadedSim(pool_size=12)
+        # sim = simulation.Simulation()
+
+        # PyBullet setup
+        p.connect(p.DIRECT)
+        p.setPhysicsEngineParameter(enableFileCaching=0)
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        p.setGravity(0, 0, -10)
+
+        # Create terrain
+        arena_size = 20
+        terrain.make_arena(arena_size=arena_size)
+
+        mountain_position = (0, 0, -1)
+        mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
+        p.setAdditionalSearchPath("shapes/")
+        mountain = p.loadURDF(
+            "gaussian_pyramid.urdf",
+            mountain_position,
+            mountain_orientation,
+            useFixedBase=1,
+        )
 
         for iteration in range(1000):
+            # Set creature starting position
+            for cr in pop.creatures:
+                cr.update_position((-5, 5, 1.5))
+
             sim.eval_population(pop, 2400)
-            fits = [cr.get_distance_travelled() 
-                    for cr in pop.creatures]
-            links = [len(cr.get_expanded_links()) 
-                    for cr in pop.creatures]
-            print(iteration, "fittest:", np.round(np.max(fits), 3), 
-                  "mean:", np.round(np.mean(fits), 3), "mean links", np.round(np.mean(links)), "max links", np.round(np.max(links)))       
+            fits = [cr.get_distance_travelled() for cr in pop.creatures]
+            links = [len(cr.get_expanded_links()) for cr in pop.creatures]
+            print(
+                iteration,
+                "fittest:",
+                np.round(np.max(fits), 3),
+                "mean:",
+                np.round(np.mean(fits), 3),
+                "mean links",
+                np.round(np.mean(links)),
+                "max links",
+                np.round(np.max(links)),
+            )
             fit_map = population.Population.get_fitness_map(fits)
             new_creatures = []
             for i in range(len(pop.creatures)):
@@ -48,12 +84,13 @@ class TestGA(unittest.TestCase):
                     new_cr = creature.Creature(1)
                     new_cr.update_dna(cr.dna)
                     new_creatures[0] = new_cr
-                    filename = "elite_"+str(iteration)+".csv"
+                    filename = "elite_" + str(iteration) + ".csv"
                     genome.Genome.to_csv(cr.dna, filename)
                     break
-            
+
             pop.creatures = new_creatures
-                            
+
         self.assertNotEqual(fits[0], 0)
+
 
 unittest.main()

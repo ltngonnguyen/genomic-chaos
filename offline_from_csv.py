@@ -1,43 +1,56 @@
-import os 
-import genome
-import sys
-import creature
-import pybullet as p
-import time 
+# offline_from_csv.py
+import os
 import random
-import numpy as np
+import sys
+import time
 
-## ... usual starter code to create a sim and floor
+import numpy as np
+import pybullet as p
+
+import creature
+import genome
+import terrain  # Import the terrain module
+
+
 def main(csv_file):
-    assert os.path.exists(csv_file), "Tried to load " + csv_file + " but it does not exists"
+    assert os.path.exists(csv_file), (
+        "Tried to load " + csv_file + " but it does not exist"
+    )
 
     p.connect(p.DIRECT)
     p.setPhysicsEngineParameter(enableFileCaching=0)
     p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-    plane_shape = p.createCollisionShape(p.GEOM_PLANE)
-    floor = p.createMultiBody(plane_shape, plane_shape)
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
     p.setGravity(0, 0, -10)
-#   p.setRealTimeSimulation(1)
 
+    arena_size = 20
+    terrain.make_arena(arena_size=arena_size)
+
+    mountain_position = (0, 0, -1)
+    mountain_orientation = p.getQuaternionFromEuler((0, 0, 0))
+    p.setAdditionalSearchPath("shapes/")
+    mountain = p.loadURDF(
+        "gaussian_pyramid.urdf", mountain_position, mountain_orientation, useFixedBase=1
+    )
 
     # generate a random creature
     cr = creature.Creature(gene_count=1)
     dna = genome.Genome.from_csv(csv_file)
     cr.update_dna(dna)
     # save it to XML
-    with open('test.urdf', 'w') as f:
+    with open("test.urdf", "w") as f:
         f.write(cr.to_xml())
     # load it into the sim
-    rob1 = p.loadURDF('test.urdf')
-    # air drop it
-    p.resetBasePositionAndOrientation(rob1, [0, 0, 2.5], [0, 0, 0, 1])
+    quadrant_positions = [(5, 5, 1.5), (-5, 5, 1.5), (5, -5, 1.5), (-5, -5, 1.5)]
+    for pos in quadrant_positions:
+        rob1 = p.loadURDF("test.urdf", pos, (0, 0, 0, 1))
+        start_pos, orn = p.getBasePositionAndOrientation(rob1)
+        break  # only use the first position for simplicity
 
-    start_pos, orn = p.getBasePositionAndOrientation(rob1)
-
-    # iterate 
+    # iterate
     elapsed_time = 0
-    wait_time = 1.0/240 # seconds
-    total_time = 30 # seconds
+    wait_time = 1.0 / 240  # seconds
+    total_time = 30  # seconds
     step = 0
     while True:
         p.stepSimulation()
@@ -48,15 +61,10 @@ def main(csv_file):
             for jid in range(p.getNumJoints(rob1)):
                 mode = p.VELOCITY_CONTROL
                 vel = motors[jid].get_output()
-                p.setJointMotorControl2(rob1, 
-                            jid,  
-                            controlMode=mode, 
-                            targetVelocity=vel)
+                p.setJointMotorControl2(rob1, jid, controlMode=mode, targetVelocity=vel)
             new_pos, orn = p.getBasePositionAndOrientation(rob1)
-            #print(new_pos)
             dist_moved = np.linalg.norm(np.asarray(start_pos) - np.asarray(new_pos))
             print(dist_moved)
-        #time.sleep(wait_time)
         elapsed_time += wait_time
         if elapsed_time > total_time:
             break
@@ -64,8 +72,6 @@ def main(csv_file):
     print("TOTAL DISTANCE MOVED:", dist_moved)
 
 
-
 if __name__ == "__main__":
-    assert len(sys.argv) == 2, "Usage: python playback_test.py csv_filename"
+    assert len(sys.argv) == 2, "Usage: python offline_from_csv.py csv_filename"
     main(sys.argv[1])
-

@@ -1,0 +1,18 @@
+<?xml version="1.0"?><robot name="pepe">
+	<link name="0">
+		<visual>
+			<geometry>
+				<cylinder length="0.6843221821662766" radius="0.6386065266618255"/>
+			</geometry>
+		</visual>
+		<collision>
+			<geometry>
+				<cylinder length="0.6843221821662766" radius="0.6386065266618255"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value="0.8767528697274423"/>
+			<inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0" ixz="0" iyx="0"/>
+		</inertial>
+	</link>
+</robot>
