@@ -30,7 +30,7 @@ def run_simulation(csv_file=None):
     if initial_dna is not None:
         pop.creatures[0].update_dna(initial_dna)
 
-    sim = simulation.ThreadedSim(pool_size=12)
+    sim = simulation.ThreadedSim(pool_size=6)
 
     # PyBullet setup
     p.connect(p.DIRECT)

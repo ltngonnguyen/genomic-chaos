@@ -44,10 +44,10 @@ class Creature:
         self.motors = None
         self.start_position = None
         self.current_position = None
-        self.distance_traveled = 0
-        self.max_height = float("-inf")
-        self.MIN_DISTANCE_THRESHOLD = 0.5
-        self.SHORT_DISTANCE_PENALTY = 0.5
+        self.summit = None
+
+    def set_summit(self, summit):
+        self.summit = summit
 
     def get_flat_links(self):
         if self.flat_links == None:
@@ -98,27 +98,18 @@ class Creature:
         if self.start_position is None:
             self.start_position = pos
         self.current_position = pos
-        self.max_height = max(self.max_height, pos[2])
 
     def finalize_distance(self):
-        # This method will now calculate a score instead of just distance
         if self.start_position is None or self.current_position is None:
             return 0
-
-        # Calculate distance moved towards the mountain
-        mountain_center = np.array([0, 0, 0])
-        start_to_mountain = mountain_center[:2] - np.array(self.start_position[:2])
-        end_to_mountain = mountain_center[:2] - np.array(self.current_position[:2])
-
-        distance_towards_mountain = np.linalg.norm(start_to_mountain) - np.linalg.norm(
-            end_to_mountain
-        )
-
-        # Calculate height gained
-        height_gained = self.max_height - self.start_position[2]
-
-        # Combine distance towards mountain and height gained for final score
-        self.score = 2.2 * distance_towards_mountain + 1.5 * height_gained
+        # Calculate distance to summit at start
+        start_to_summit = np.linalg.norm(self.summit - np.array(self.start_position))
+        # Calculate distance to summit at end
+        end_to_summit = np.linalg.norm(self.summit - np.array(self.current_position))
+        # Calculate improvement (reduction in distance to summit)
+        distance_improvement = start_to_summit - end_to_summit
+        # Set the score
+        self.score = distance_improvement
 
     def get_fitness(self):
         return self.score

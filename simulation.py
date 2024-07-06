@@ -1,5 +1,6 @@
 from multiprocessing import Pool
 
+import numpy as np
 import pybullet as p
 
 import terrain
@@ -9,6 +10,31 @@ class Simulation:
     def __init__(self, sim_id=0):
         self.physicsClientId = p.connect(p.DIRECT)
         self.sim_id = sim_id
+        self.summit = None
+        self.mountain_id = None
+
+    def find_mountain_and_summit(self):
+        # Find the mountain by looping through all bodies and checking their info
+        self.mountain_id = next(
+            (
+                i
+                for i in range(p.getNumBodies(physicsClientId=self.physicsClientId))
+                if p.getBodyInfo(i, physicsClientId=self.physicsClientId)[1].decode(
+                    "utf-8"
+                )
+                == "mountain"
+            ),
+            None,
+        )
+
+        if self.mountain_id is None:
+            raise Exception("Mountain (gaussian_pyramid.urdf) not found in simulation")
+
+        # Get the AABB (Axis-Aligned Bounding Box) of the mountain
+        _, aabb_max = p.getAABB(self.mountain_id, physicsClientId=self.physicsClientId)
+
+        # The summit is the highest point of the AABB
+        self.summit = np.array([0, 0, aabb_max[2]])
 
     def run_creature(self, cr, iterations=2400):
         pid = self.physicsClientId
@@ -28,6 +54,13 @@ class Simulation:
             f.write(xml_str)
 
         cid = p.loadURDF(xml_file, physicsClientId=pid)
+
+        # Find the mountain and summit if not already found
+        if self.summit is None:
+            self.find_mountain_and_summit()
+
+        # Pass the summit to the creature
+        cr.set_summit(self.summit)
 
         # Set starting position
         p.resetBasePositionAndOrientation(
@@ -62,16 +95,30 @@ class Simulation:
             )
 
     def eval_population(self, pop, iterations):
+        # Find the mountain and summit once for all creatures
+        if self.summit is None:
+            self.find_mountain_and_summit()
+
         for cr in pop.creatures:
+            cr.set_summit(self.summit)
             self.run_creature(cr, iterations)
 
 
 class ThreadedSim:
     def __init__(self, pool_size):
         self.sims = [Simulation(i) for i in range(pool_size)]
+        self.summit = None
+        self.mountain_id = None
+
+    def find_mountain_and_summit(self):
+        # Use the first simulation to find the mountain and summit
+        self.sims[0].find_mountain_and_summit()
+        self.summit = self.sims[0].summit
+        self.mountain_id = self.sims[0].mountain_id
 
     @staticmethod
     def static_run_creature(sim, cr, iterations):
+        cr.set_summit(sim.summit)
         sim.run_creature(cr, iterations)
         return cr
 
@@ -80,6 +127,12 @@ class ThreadedSim:
         pop is a Population object
         iterations is frames in pybullet to run for at 240fps
         """
+        # Find the mountain and summit once for all creatures
+        if self.summit is None:
+            self.find_mountain_and_summit()
+        for sim in self.sims:
+            sim.summit = self.summit
+            sim.mountain_id = self.mountain_id
         pool_args = []
         start_ind = 0
         pool_size = len(self.sims)
