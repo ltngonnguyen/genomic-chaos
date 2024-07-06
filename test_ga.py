@@ -25,7 +25,7 @@ def run_simulation(csv_file=None):
     else:
         print("Starting from scratch.")
 
-    pop = population.Population(pop_size=120, gene_count=5)
+    pop = population.Population(pop_size=60, gene_count=5)
 
     if initial_dna is not None:
         pop.creatures[0].update_dna(initial_dna)

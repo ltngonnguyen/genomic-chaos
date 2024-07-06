@@ -20,6 +20,7 @@ class Motor:
         self.amp = control_amp
         self.freq = control_freq
         self.phase = 0
+        self.energy_consumed = 0
 
     def get_output(self):
         self.phase = (self.phase + self.freq) % (np.pi * 2)
@@ -31,6 +32,9 @@ class Motor:
 
         if self.motor_type == MotorType.SINE:
             output = np.sin(self.phase)
+
+        # Calculate energy consumption based on output
+        self.energy_consumed += abs(output) * self.amp
 
         return output
 
@@ -45,6 +49,7 @@ class Creature:
         self.start_position = None
         self.current_position = None
         self.summit = None
+        self.energy_consumed = 0
 
     def set_summit(self, summit):
         self.summit = summit
@@ -108,8 +113,21 @@ class Creature:
         end_to_summit = np.linalg.norm(self.summit - np.array(self.current_position))
         # Calculate improvement (reduction in distance to summit)
         distance_improvement = start_to_summit - end_to_summit
-        # Set the score
-        self.score = distance_improvement
+
+        # Calculate total energy consumed by all motors
+        self.energy_consumed = sum(motor.energy_consumed for motor in self.get_motors())
+
+        # Calculate fitness based on distance improvement and energy efficiency
+        energy_efficiency = distance_improvement / (
+            self.energy_consumed + 1e-6
+        )  # Add small value to avoid division by zero
+
+        # Set the score as a combination of distance improvement and energy efficiency
+        self.score = distance_improvement + energy_efficiency
+
+        # If the creature hasn't moved, set its score to 0
+        if np.all(np.array(self.start_position) == np.array(self.current_position)):
+            self.score = 0
 
     def get_fitness(self):
         return self.score
@@ -121,3 +139,4 @@ class Creature:
         self.motors = None
         self.start_position = None
         self.last_position = None
+        self.energy_consumed = 0
