@@ -118,7 +118,7 @@ class Creature:
         height_gained = self.max_height - self.start_position[2]
 
         # Combine distance towards mountain and height gained for final score
-        self.score = 1.5 * distance_towards_mountain + 2 * height_gained
+        self.score = 2.2 * distance_towards_mountain + 1.5 * height_gained
 
     def get_fitness(self):
         return self.score

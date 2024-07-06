@@ -19,7 +19,7 @@ import terrain
 
 class TestGA(unittest.TestCase):
     def testBasicGA(self):
-        pop = population.Population(pop_size=120, gene_count=3)
+        pop = population.Population(pop_size=120, gene_count=5)
         sim = simulation.ThreadedSim(pool_size=12)
         # sim = simulation.Simulation()
 

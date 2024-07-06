@@ -20,7 +20,7 @@ class Genome:
         gene_spec = {
             "link-shape": {"scale": 1},
             "link-length": {"scale": 1, "max": 2},
-            "link-radius": {"scale": 0.5, "max": 1},
+            "link-radius": {"scale": 0.2, "max": 0.5},
             "link-recurrence": {"scale": 3},
             "link-mass": {"scale": 1},
             "joint-type": {"scale": 1},
@@ -29,9 +29,9 @@ class Genome:
             "joint-origin-rpy-1": {"scale": np.pi * 2},
             "joint-origin-rpy-2": {"scale": np.pi * 2},
             "joint-origin-rpy-3": {"scale": np.pi * 2},
-            "joint-origin-xyz-1": {"scale": 1},
-            "joint-origin-xyz-2": {"scale": 1},
-            "joint-origin-xyz-3": {"scale": 1},
+            "joint-origin-xyz-1": {"scale": 0.5},
+            "joint-origin-xyz-2": {"scale": 0.5},
+            "joint-origin-xyz-3": {"scale": 0.5},
             "control-waveform": {"scale": 1},
             "control-amp": {"scale": 0.25},
             "control-freq": {"scale": 1},
@@ -74,6 +74,9 @@ class Genome:
                 # print("exp: ", c.name, " -> ", uniq_name)
                 c_copy.name = uniq_name
                 c_copy.sibling_ind = sibling_ind
+                c_copy.joint_origin_xyz_1 = 0
+                c_copy.joint_origin_xyz_2 = 0
+                c_copy.joint_origin_xyz_3 = parent_link.link_length / 2
                 exp_links.append(c_copy)
                 assert c.parent_name != c.name, (
                     "Genome::expandLinks: link joined to itself: "
@@ -338,24 +341,16 @@ class URDFLink:
         limit_tag.setAttribute("velocity", "1")
         # <origin rpy="0 0 0" xyz="0 0.5 0"/>
         orig_tag = adom.createElement("origin")
-
         rpy1 = self.joint_origin_rpy_1 * self.sibling_ind
-        rpy = (
-            str(rpy1)
-            + " "
-            + str(self.joint_origin_rpy_2)
-            + " "
-            + str(self.joint_origin_rpy_3)
-        )
-
+        rpy = f"{rpy1} {self.joint_origin_rpy_2} {self.joint_origin_rpy_3}"
         orig_tag.setAttribute("rpy", rpy)
-        xyz = (
-            str(self.joint_origin_xyz_1)
-            + " "
-            + str(self.joint_origin_xyz_2)
-            + " "
-            + str(self.joint_origin_xyz_3)
-        )
+
+        # Use a fraction of the link length for the joint position
+        joint_offset = self.link_length * 0.75  # NOTE TO SELF: ADJUSTABLE
+        x_offset = self.joint_origin_xyz_1 * 0.2  # Small x adjustment
+        y_offset = self.joint_origin_xyz_2 * 0.2  # Small y adjustment
+        z_offset = joint_offset + (self.joint_origin_xyz_3 * 0.2)  # z adjustment
+        xyz = f"{x_offset} {y_offset} {z_offset}"
         orig_tag.setAttribute("xyz", xyz)
 
         joint_tag.appendChild(parent_tag)
