@@ -127,6 +127,15 @@ class Creature:
         # Set the score as a combination of distance improvement and energy efficiency
         self.score = distance_improvement + energy_efficiency
 
+        # If the creature hasn't moved, set its score to 0
+        if (
+            np.linalg.norm(
+                np.array(self.start_position) - np.array(self.current_position)
+            )
+            < 0.5
+        ):
+            self.score = 0.001
+
     def get_fitness(self):
         return self.score
 
@@ -1572,10 +1581,10 @@ def run_simulation(csv_file=None):
             iteration,
             "fittest:",
             np.round(np.max(fits), 3),
-            "mean:",
-            np.round(np.mean(fits), 3),
-            "mean links",
-            np.round(np.mean(links)),
+            "median:",
+            np.round(np.median(fits), 3),
+            "median links",
+            np.round(np.median(links)),
             "max links",
             np.round(np.max(links)),
         )

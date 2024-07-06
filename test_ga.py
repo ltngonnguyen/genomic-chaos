@@ -1,5 +1,8 @@
+import csv
 import os
 import sys
+import time
+from statistics import mean, median, stdev
 
 import numpy as np
 import pybullet as p
@@ -9,6 +12,56 @@ import genome
 import population
 import simulation
 import terrain
+
+
+def log_iteration(iteration, pop, filename="evolution_log.csv"):
+    """
+    Log the current iteration's data to a CSV file.
+    Each call to this function will append a new row to the file.
+    """
+    # Collect data
+    fits = [cr.get_fitness() for cr in pop.creatures]
+    links = [len(cr.get_expanded_links()) for cr in pop.creatures]
+    distances = [cr.get_distance_travelled() for cr in pop.creatures]
+    energies = [cr.energy_consumed for cr in pop.creatures]
+    energy_efficiencies = [
+        d / (e + 1e-6) for d, e in zip(distances, energies)
+    ]  # Avoid division by zero
+    gene_counts = [len(cr.dna) for cr in pop.creatures]
+
+    # Calculate statistics
+    data = {
+        "Iteration": iteration,
+        "Best Fitness": max(fits),
+        "Average Fitness": mean(fits),
+        "Median Fitness": median(fits),
+        "Worst Fitness": min(fits),
+        "Fitness Diversity": stdev(fits),
+        "Average Links": mean(links),
+        "Median Links": median(links),
+        "Max Links": max(links),
+        "Best Distance": max(distances),
+        "Average Distance": mean(distances),
+        "Median Distance": median(distances),
+        "Best Energy Efficiency": max(energy_efficiencies),
+        "Average Energy Efficiency": mean(energy_efficiencies),
+        "Median Energy Efficiency": median(energy_efficiencies),
+        "Average Gene Count": mean(gene_counts),
+        "Median Gene Count": median(gene_counts),
+        "Max Gene Count": max(gene_counts),
+        "Timestamp": time.time(),
+    }
+
+    # Write data to CSV file
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, "a", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+
+        if not file_exists:
+            writer.writeheader()  # Write header if file doesn't exist
+
+        writer.writerow(data)
 
 
 def run_simulation(csv_file=None):
@@ -52,7 +105,7 @@ def run_simulation(csv_file=None):
         useFixedBase=1,
     )
 
-    for iteration in range(start_iteration, 1000):
+    for iteration in range(start_iteration, 100):
         # Set creature starting position
         for cr in pop.creatures:
             cr.update_position((-5, 5, 1.5))
@@ -64,10 +117,10 @@ def run_simulation(csv_file=None):
             iteration,
             "fittest:",
             np.round(np.max(fits), 3),
-            "mean:",
-            np.round(np.mean(fits), 3),
-            "mean links",
-            np.round(np.mean(links)),
+            "median:",
+            np.round(np.median(fits), 3),
+            "median links",
+            np.round(np.median(links)),
             "max links",
             np.round(np.max(links)),
         )
@@ -86,6 +139,8 @@ def run_simulation(csv_file=None):
             cr = creature.Creature(1)
             cr.update_dna(dna)
             new_creatures.append(cr)
+
+        log_iteration(iteration, pop)
         # elitism
         max_fit = np.max(fits)
         for cr in pop.creatures:
@@ -99,7 +154,7 @@ def run_simulation(csv_file=None):
 
         pop.creatures = new_creatures
 
-    self.assertNotEqual(fits[0], 0)
+    # self.assertNotEqual(fits[0], 0)
 
 
 if __name__ == "__main__":

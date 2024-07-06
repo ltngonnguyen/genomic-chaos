@@ -99,6 +99,13 @@ class Creature:
             self.motors = motors
         return self.motors
 
+    def get_distance_travelled(self):
+        if self.start_position is None or self.current_position is None:
+            return 0.00001
+        return np.linalg.norm(
+            np.array(self.current_position) - np.array(self.start_position)
+        )
+
     def update_position(self, pos):
         if self.start_position is None:
             self.start_position = pos
@@ -118,16 +125,13 @@ class Creature:
         self.energy_consumed = sum(motor.energy_consumed for motor in self.get_motors())
 
         # Calculate fitness based on distance improvement and energy efficiency
-        energy_efficiency = distance_improvement / (
-            self.energy_consumed + 1e-6
-        )  # Add small value to avoid division by zero
-
-        # Set the score as a combination of distance improvement and energy efficiency
-        self.score = distance_improvement + energy_efficiency
+        energy_efficiency = distance_improvement / (self.energy_consumed + 1e-6)
 
         # If the creature hasn't moved, set its score to 0
-        if np.all(np.array(self.start_position) == np.array(self.current_position)):
-            self.score = 0
+        if self.get_distance_travelled() < 0.5:
+            self.score = 0.001
+        else:
+            self.score = distance_improvement + energy_efficiency
 
     def get_fitness(self):
         return self.score
