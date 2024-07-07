@@ -40,8 +40,21 @@ def main(csv_file):
     with open("test.urdf", "w") as f:
         f.write(cr.to_xml())
     # load it into the sim
-    rob1 = p.loadURDF("test.urdf", (5, -5, 1.5), (0, 0, 0, 1))
+    rob1 = p.loadURDF("test.urdf", (-5, 5, 1.5), (0, 0, 0, 1))
     start_pos, orn = p.getBasePositionAndOrientation(rob1)
+
+    # Set initial camera position and target
+    camera_distance = 5
+    camera_pitch = -30
+    camera_yaw = 120
+    camera_target_position = start_pos  # Track the creature
+
+    p.resetDebugVisualizerCamera(
+        cameraDistance=camera_distance,
+        cameraYaw=camera_yaw,
+        cameraPitch=camera_pitch,
+        cameraTargetPosition=camera_target_position,
+    )
 
     # iterate
     elapsed_time = 0
