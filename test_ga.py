@@ -20,13 +20,14 @@ def log_iteration(iteration, pop, filename="evolution_log.csv"):
     Each call to this function will append a new row to the file.
     """
     # Collect data
-    fits = [cr.get_fitness() for cr in pop.creatures]
+    fits = [cr.finalize_distance() for cr in pop.creatures]
     links = [len(cr.get_expanded_links()) for cr in pop.creatures]
     distances = [cr.get_distance_travelled() for cr in pop.creatures]
     energies = [cr.energy_consumed for cr in pop.creatures]
     energy_efficiencies = [
-        d / (e + 1e-6) for d, e in zip(distances, energies)
-    ]  # Avoid division by zero
+        0 if d / (e + 1e-6) > 1000 or d / (e + 1e-6) < -1000 else d / (e + 1e-6)
+        for d, e in zip(distances, energies)
+    ]
     gene_counts = [len(cr.dna) for cr in pop.creatures]
 
     # Calculate statistics
@@ -78,7 +79,7 @@ def run_simulation(csv_file=None):
     else:
         print("Starting from scratch.")
 
-    pop = population.Population(pop_size=60, gene_count=5)
+    pop = population.Population(pop_size=120, gene_count=4)
 
     if initial_dna is not None:
         pop.creatures[0].update_dna(initial_dna)
@@ -111,7 +112,7 @@ def run_simulation(csv_file=None):
             cr.update_position((-5, 5, 1.5))
 
         sim.eval_population(pop, 2400)
-        fits = [cr.get_fitness() for cr in pop.creatures]
+        fits = [cr.finalize_distance() for cr in pop.creatures]
         links = [len(cr.get_expanded_links()) for cr in pop.creatures]
         print(
             iteration,
@@ -144,7 +145,7 @@ def run_simulation(csv_file=None):
         # elitism
         max_fit = np.max(fits)
         for cr in pop.creatures:
-            if cr.get_fitness() == max_fit:
+            if cr.finalize_distance() == max_fit:
                 new_cr = creature.Creature(1)
                 new_cr.update_dna(cr.dna)
                 new_creatures[0] = new_cr
@@ -153,8 +154,6 @@ def run_simulation(csv_file=None):
                 break
 
         pop.creatures = new_creatures
-
-    # self.assertNotEqual(fits[0], 0)
 
 
 if __name__ == "__main__":

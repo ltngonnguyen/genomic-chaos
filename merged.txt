@@ -101,6 +101,13 @@ class Creature:
             self.motors = motors
         return self.motors
 
+    def get_distance_travelled(self):
+        if self.start_position is None or self.current_position is None:
+            return 0.00001
+        return np.linalg.norm(
+            np.array(self.current_position) - np.array(self.start_position)
+        )
+
     def update_position(self, pos):
         if self.start_position is None:
             self.start_position = pos
@@ -120,24 +127,16 @@ class Creature:
         self.energy_consumed = sum(motor.energy_consumed for motor in self.get_motors())
 
         # Calculate fitness based on distance improvement and energy efficiency
-        energy_efficiency = distance_improvement / (
-            self.energy_consumed + 1e-6
-        )  # Add small value to avoid division by zero
+        energy_efficiency = distance_improvement / (self.energy_consumed + 1e-6)
 
-        # Set the score as a combination of distance improvement and energy efficiency
-        self.score = distance_improvement + energy_efficiency
-
-        # If the creature hasn't moved, set its score to 0
         if (
-            np.linalg.norm(
-                np.array(self.start_position) - np.array(self.current_position)
-            )
-            < 0.5
+            self.get_distance_travelled() < 0.5
+            or energy_efficiency > 1000
+            or energy_efficiency < 0.001
         ):
-            self.score = 0.001
-
-    def get_fitness(self):
-        return self.score
+            return distance_improvement
+        else:
+            return distance_improvement + energy_efficiency
 
     def update_dna(self, dna):
         self.dna = dna
@@ -1515,8 +1514,11 @@ class TestCreature(unittest.TestCase):
 
 unittest.main()
 [test_ga.py]
+import csv
 import os
 import sys
+import time
+from statistics import mean, median, stdev
 
 import numpy as np
 import pybullet as p
@@ -1526,6 +1528,57 @@ import genome
 import population
 import simulation
 import terrain
+
+
+def log_iteration(iteration, pop, filename="evolution_log.csv"):
+    """
+    Log the current iteration's data to a CSV file.
+    Each call to this function will append a new row to the file.
+    """
+    # Collect data
+    fits = [cr.finalize_distance() for cr in pop.creatures]
+    links = [len(cr.get_expanded_links()) for cr in pop.creatures]
+    distances = [cr.get_distance_travelled() for cr in pop.creatures]
+    energies = [cr.energy_consumed for cr in pop.creatures]
+    energy_efficiencies = [
+        0 if d / (e + 1e-6) > 1000 or d / (e + 1e-6) < -1000 else d / (e + 1e-6)
+        for d, e in zip(distances, energies)
+    ]
+    gene_counts = [len(cr.dna) for cr in pop.creatures]
+
+    # Calculate statistics
+    data = {
+        "Iteration": iteration,
+        "Best Fitness": max(fits),
+        "Average Fitness": mean(fits),
+        "Median Fitness": median(fits),
+        "Worst Fitness": min(fits),
+        "Fitness Diversity": stdev(fits),
+        "Average Links": mean(links),
+        "Median Links": median(links),
+        "Max Links": max(links),
+        "Best Distance": max(distances),
+        "Average Distance": mean(distances),
+        "Median Distance": median(distances),
+        "Best Energy Efficiency": max(energy_efficiencies),
+        "Average Energy Efficiency": mean(energy_efficiencies),
+        "Median Energy Efficiency": median(energy_efficiencies),
+        "Average Gene Count": mean(gene_counts),
+        "Median Gene Count": median(gene_counts),
+        "Max Gene Count": max(gene_counts),
+        "Timestamp": time.time(),
+    }
+
+    # Write data to CSV file
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, "a", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+
+        if not file_exists:
+            writer.writeheader()  # Write header if file doesn't exist
+
+        writer.writerow(data)
 
 
 def run_simulation(csv_file=None):
@@ -1542,7 +1595,7 @@ def run_simulation(csv_file=None):
     else:
         print("Starting from scratch.")
 
-    pop = population.Population(pop_size=60, gene_count=5)
+    pop = population.Population(pop_size=120, gene_count=5)
 
     if initial_dna is not None:
         pop.creatures[0].update_dna(initial_dna)
@@ -1569,13 +1622,13 @@ def run_simulation(csv_file=None):
         useFixedBase=1,
     )
 
-    for iteration in range(start_iteration, 1000):
+    for iteration in range(start_iteration, 100):
         # Set creature starting position
         for cr in pop.creatures:
             cr.update_position((-5, 5, 1.5))
 
         sim.eval_population(pop, 2400)
-        fits = [cr.get_fitness() for cr in pop.creatures]
+        fits = [cr.finalize_distance() for cr in pop.creatures]
         links = [len(cr.get_expanded_links()) for cr in pop.creatures]
         print(
             iteration,
@@ -1603,10 +1656,12 @@ def run_simulation(csv_file=None):
             cr = creature.Creature(1)
             cr.update_dna(dna)
             new_creatures.append(cr)
+
+        log_iteration(iteration, pop)
         # elitism
         max_fit = np.max(fits)
         for cr in pop.creatures:
-            if cr.get_fitness() == max_fit:
+            if cr.finalize_distance() == max_fit:
                 new_cr = creature.Creature(1)
                 new_cr.update_dna(cr.dna)
                 new_creatures[0] = new_cr
@@ -1615,8 +1670,6 @@ def run_simulation(csv_file=None):
                 break
 
         pop.creatures = new_creatures
-
-    self.assertNotEqual(fits[0], 0)
 
 
 if __name__ == "__main__":

@@ -127,14 +127,14 @@ class Creature:
         # Calculate fitness based on distance improvement and energy efficiency
         energy_efficiency = distance_improvement / (self.energy_consumed + 1e-6)
 
-        # If the creature hasn't moved, set its score to 0
-        if self.get_distance_travelled() < 0.5:
-            self.score = 0.001
+        if (
+            self.get_distance_travelled() < 0.5
+            or energy_efficiency > 1000
+            or energy_efficiency < 0.001
+        ):
+            return distance_improvement
         else:
-            self.score = distance_improvement + energy_efficiency
-
-    def get_fitness(self):
-        return self.score
+            return distance_improvement + energy_efficiency
 
     def update_dna(self, dna):
         self.dna = dna
