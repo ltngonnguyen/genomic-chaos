@@ -134,9 +134,9 @@ def run_simulation(csv_file=None):
             p2 = pop.creatures[p2_ind]
             # now we have the parents!
             dna = genome.Genome.crossover(p1.dna, p2.dna)
-            dna = genome.Genome.point_mutate(dna, rate=0.2, amount=0.25)
-            dna = genome.Genome.shrink_mutate(dna, rate=0.1)
-            dna = genome.Genome.grow_mutate(dna, rate=0.2)
+            dna = genome.Genome.point_mutate(dna, rate=0.1, amount=0.25)
+            dna = genome.Genome.shrink_mutate(dna, rate=0.25)
+            dna = genome.Genome.grow_mutate(dna, rate=0.1)
             cr = creature.Creature(1)
             cr.update_dna(dna)
             new_creatures.append(cr)
