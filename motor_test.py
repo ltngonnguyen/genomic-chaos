@@ -1,4 +1,6 @@
 # motor_test.py
+import os
+import tempfile
 import time
 
 import numpy as np
@@ -27,11 +29,15 @@ def main():
 
     # generate a random creature
     cr = creature.Creature(gene_count=3)
-    # save it to XML
-    with open("test.urdf", "w") as f:
+    # save it to a temporary URDF for PyBullet to load
+    robot_file = tempfile.NamedTemporaryFile(mode="w", suffix=".urdf", delete=False)
+    with robot_file as f:
         f.write(cr.to_xml())
     # load it into the sim
-    rob1 = p.loadURDF("test.urdf", (0, 0, 10))
+    try:
+        rob1 = p.loadURDF(robot_file.name, (0, 0, 10))
+    finally:
+        os.unlink(robot_file.name)
 
     start_pos, orn = p.getBasePositionAndOrientation(rob1)
 

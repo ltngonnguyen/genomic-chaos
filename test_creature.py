@@ -1,6 +1,10 @@
 import unittest
+import os
+import tempfile
+
 import creature
 import pybullet as p
+
 
 class TestCreature(unittest.TestCase):
     def testCreatExists(self):
@@ -25,11 +29,16 @@ class TestCreature(unittest.TestCase):
     def testLoadXML(self):
         c = creature.Creature(gene_count=20)
         xml_str = c.to_xml()
-        with open('test.urdf', 'w') as f:
+        robot_file = tempfile.NamedTemporaryFile(mode="w", suffix=".urdf", delete=False)
+        with robot_file as f:
             f.write(xml_str)
-        p.connect(p.DIRECT)
-        cid = p.loadURDF('test.urdf')
-        self.assertIsNotNone(cid)
+        pid = p.connect(p.DIRECT)
+        try:
+            cid = p.loadURDF(robot_file.name, physicsClientId=pid)
+            self.assertIsNotNone(cid)
+        finally:
+            p.disconnect(physicsClientId=pid)
+            os.unlink(robot_file.name)
 
       
     def testMotor(self):
@@ -54,5 +63,3 @@ class TestCreature(unittest.TestCase):
         d2 = c.get_distance_travelled()
         self.assertGreater(d2, d1)
         
-
-unittest.main()

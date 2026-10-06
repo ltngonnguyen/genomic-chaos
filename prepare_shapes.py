@@ -324,20 +324,13 @@ def generate_gaussian_pyramid4(filename, size=10, resolution=0.5, sigma=3, heigh
         for face in faces:
             f.write(f"f {face[0]+1} {face[1]+1} {face[2]+1}\n")
 
-# Generate the OBJ file
-generate_gaussian_pyramid4("./shapes/gaussian_pyramid.obj")
+if __name__ == "__main__":
+    # Generate the default mountain mesh used by the simulation.
+    generate_gaussian_pyramid4("./shapes/gaussian_pyramid.obj")
 
 
-# Generate the OBJ file
-# generate_gaussian_pyramid3("./shapes/gaussian_pyramid.obj")
-
-
-# Generate the OBJ file
-# generate_gaussian_pyramid("./shapes/gaussian_pyramid.obj")
-
-
-# make_pyramid('./shapes/pyramid.obj')
-# make_rocky_moutain('./shapes/mountain_with_cubes.obj')
-
-# make_pyramid('mountain.obj')
-# make_rocky_moutain('./shapes/mountain_with_cubes.obj')
+    # Other terrain experiments I used while tuning the project:
+    # generate_gaussian_pyramid3("./shapes/gaussian_pyramid.obj")
+    # generate_gaussian_pyramid("./shapes/gaussian_pyramid.obj")
+    # make_pyramid('./shapes/pyramid.obj')
+    # make_rocky_moutain('./shapes/mountain_with_cubes.obj')

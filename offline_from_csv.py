@@ -2,10 +2,12 @@
 import os
 import random
 import sys
+import tempfile
 import time
 
 import numpy as np
 import pybullet as p
+import pybullet_data
 
 import creature
 import genome
@@ -37,15 +39,19 @@ def main(csv_file):
     cr = creature.Creature(gene_count=1)
     dna = genome.Genome.from_csv(csv_file)
     cr.update_dna(dna)
-    # save it to XML
-    with open("test.urdf", "w") as f:
+    # save it to a temporary URDF for PyBullet to load
+    robot_file = tempfile.NamedTemporaryFile(mode="w", suffix=".urdf", delete=False)
+    with robot_file as f:
         f.write(cr.to_xml())
     # load it into the sim
     quadrant_positions = [(5, 5, 1.5), (-5, 5, 1.5), (5, -5, 1.5), (-5, -5, 1.5)]
-    for pos in quadrant_positions:
-        rob1 = p.loadURDF("test.urdf", pos, (0, 0, 0, 1))
-        start_pos, orn = p.getBasePositionAndOrientation(rob1)
-        break  # only use the first position for simplicity
+    try:
+        for pos in quadrant_positions:
+            rob1 = p.loadURDF(robot_file.name, pos, (0, 0, 0, 1))
+            start_pos, orn = p.getBasePositionAndOrientation(rob1)
+            break  # only use the first position for simplicity
+    finally:
+        os.unlink(robot_file.name)
 
     # iterate
     elapsed_time = 0
@@ -72,6 +78,10 @@ def main(csv_file):
     print("TOTAL DISTANCE MOVED:", dist_moved)
 
 
-if __name__ == "__main__":
+def main_from_cli():
     assert len(sys.argv) == 2, "Usage: python offline_from_csv.py csv_filename"
     main(sys.argv[1])
+
+
+if __name__ == "__main__":
+    main_from_cli()

@@ -1,8 +1,10 @@
 
-import unittest 
+import os
+import tempfile
+import unittest
+
 import genome
 import numpy as np
-import os
 
 class GenomeTest (unittest.TestCase):
     def testClassExists(self):
@@ -132,37 +134,58 @@ class GenomeTest (unittest.TestCase):
 
     def test_tocsv(self):
         g1 = [[1,2,3]]
-        genome.Genome.to_csv(g1, 'test.csv')
-        self.assertTrue(os.path.exists('test.csv'))
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            filename = f.name
+        try:
+            genome.Genome.to_csv(g1, filename)
+            self.assertTrue(os.path.exists(filename))
+        finally:
+            os.unlink(filename)
 
     def test_tocsv_content(self):
         g1 = [[1,2,3]]
-        genome.Genome.to_csv(g1, 'test.csv')
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            filename = f.name
+        genome.Genome.to_csv(g1, filename)
         expect = "1,2,3,\n"
-        with open('test.csv') as f:
-            csv_str = f.read() 
-        self.assertEqual(csv_str, expect)
+        try:
+            with open(filename) as f:
+                csv_str = f.read()
+            self.assertEqual(csv_str, expect)
+        finally:
+            os.unlink(filename)
 
     def test_tocsv_content2(self):
         g1 = [[1,2,3], [4,5,6]]
-        genome.Genome.to_csv(g1, 'test.csv')
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            filename = f.name
+        genome.Genome.to_csv(g1, filename)
         expect = "1,2,3,\n4,5,6,\n"
-        with open('test.csv') as f:
-            csv_str = f.read() 
-        self.assertEqual(csv_str, expect)
+        try:
+            with open(filename) as f:
+                csv_str = f.read()
+            self.assertEqual(csv_str, expect)
+        finally:
+            os.unlink(filename)
 
     def test_from_csv(self):
         g1 = [[1,2,3]]
-        genome.Genome.to_csv(g1, 'test.csv')
-        g2 = genome.Genome.from_csv('test.csv')
-        print(g1, g2)
-        self.assertTrue(np.array_equal(g1, g2))
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            filename = f.name
+        try:
+            genome.Genome.to_csv(g1, filename)
+            g2 = genome.Genome.from_csv(filename)
+            self.assertTrue(np.array_equal(g1, g2))
+        finally:
+            os.unlink(filename)
 
     def test_from_csv2(self):
         g1 = [[1,2,3], [4,5,6]]
-        genome.Genome.to_csv(g1, 'test.csv')
-        g2 = genome.Genome.from_csv('test.csv')
-        print(g1, g2)
-        self.assertTrue(np.array_equal(g1, g2))
-
-unittest.main()
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            filename = f.name
+        try:
+            genome.Genome.to_csv(g1, filename)
+            g2 = genome.Genome.from_csv(filename)
+            self.assertTrue(np.array_equal(g1, g2))
+        finally:
+            os.unlink(filename)

@@ -47,6 +47,7 @@ class Creature:
         self.exp_links = None
         self.motors = None
         self.start_position = None
+        self.last_position = None
         self.current_position = None
         self.summit = None
         self.energy_consumed = 0
@@ -109,10 +110,15 @@ class Creature:
     def update_position(self, pos):
         if self.start_position is None:
             self.start_position = pos
+        self.last_position = self.current_position
         self.current_position = pos
 
     def finalize_distance(self):
-        if self.start_position is None or self.current_position is None:
+        if (
+            self.start_position is None
+            or self.current_position is None
+            or self.summit is None
+        ):
             return 0
         # Calculate distance to summit at start
         start_to_summit = np.linalg.norm(self.summit - np.array(self.start_position))
@@ -142,5 +148,6 @@ class Creature:
         self.exp_links = None
         self.motors = None
         self.start_position = None
+        self.current_position = None
         self.last_position = None
         self.energy_consumed = 0

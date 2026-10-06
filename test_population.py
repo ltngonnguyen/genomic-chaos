@@ -18,5 +18,3 @@ class TestPop(unittest.TestCase):
         fitmap = population.Population.get_fitness_map(fits)
         pid = population.Population.select_parent(fitmap)
         self.assertEqual(pid, 1)    
-
-unittest.main()

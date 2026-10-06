@@ -1,0 +1,49 @@
+[project]
+name = "genomic-chaos"
+version = "0.1.0"
+description = "Evolutionary robotics experiment using genetic algorithms, PyBullet simulation, and parallel population evaluation."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = "MIT"
+dependencies = [
+    "numpy>=1.24",
+    "pybullet>=3.2.6",
+    "noise>=1.2.2",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "creature",
+    "genome",
+    "population",
+    "simulation",
+    "terrain",
+    "train",
+    "realtime_from_csv",
+    "offline_from_csv",
+]
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[project.scripts]
+genomic-chaos-train = "train:main"
+genomic-chaos-replay = "realtime_from_csv:main_from_cli"
+genomic-chaos-offline = "offline_from_csv:main_from_cli"
+
+[tool.pytest.ini_options]
+python_files = [
+    "test_creature.py",
+    "test_genome.py",
+    "test_population.py",
+    "test_simulation.py",
+]
